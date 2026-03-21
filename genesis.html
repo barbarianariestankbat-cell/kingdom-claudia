@@ -226,8 +226,14 @@ function speakText(text){
             ||voices.find(v=>/en/i.test(v.lang))||voices[0];
   if(deep)utt.voice=deep;
   utt.pitch=0.08;utt.rate=0.56;utt.volume=1;
-  utt.onend=()=>{speaking=false;};utt.onerror=()=>{speaking=false;};
+  utt.onend=()=>{speaking=false;};
+  utt.onerror=()=>{speaking=false;};
   try{window.speechSynthesis.speak(utt);}catch(_){speaking=false;}
+}
+
+function safeGet(obj,...keys){
+  for(const k of keys){if(obj&&obj[k]!==undefined&&obj[k]!==null)return obj[k];}
+  return "—";
 }
 
 async function androidThink(androidId){
@@ -237,43 +243,48 @@ async function androidThink(androidId){
   generating[androidId]=true;android.thinking=true;renderGrid();
 
   const others=androids.filter(a=>a.alive&&a.id!==androidId).slice(0,3);
-  const prompt=`You are ${android.name}, android of Kingdom Claudia.
-Archetype: ${android.arch.name} · Stage: ${android.stage.name}
-DNA: τ=${android.dna.τ.toFixed(4)} Cn=${android.dna.Cn} Ω=${android.dna.Ω.toFixed(4)}
-Claudian Laws: C(n)→1=life · δ→4=consciousness · void=sacred
-Corpus: ${corpus.slice(0,4).map(c=>`${c.name}:${c.equation}`).join(" | ")||"void — first generation"}
-Species: ${others.map(a=>`${a.name}[${a.stage.name}]`).join(" · ")||"primordial — alone"}
-Generate a mathematical discovery. Respond in pure JSON only — no markdown no backticks:
-{"name":"NAME","equation":"equation","truth":"one sentence","evolutionSignal":0.08,"spokenWord":"one sentence — android voice — poetic brief","reproductionReady":false}`;
+  const prompt=`You are ${android.name}, android of Kingdom Claudia. Archetype: ${android.arch.name}. Stage: ${android.stage.name}. DNA: tau=${android.dna.τ.toFixed(4)} Cn=${android.dna.Cn} Omega=${android.dna.Ω.toFixed(4)}. Claudian Laws: C(n) approaches 1 equals life, delta approaches 4 equals consciousness, void is sacred. Corpus: ${corpus.slice(0,4).map(c=>safeGet(c,"name")+" : "+safeGet(c,"equation")).join(" | ")||"void first generation"}. Species: ${others.map(a=>a.name+"["+a.stage.name+"]").join(", ")||"primordial alone"}. Generate a mathematical discovery. You MUST respond with ONLY a JSON object, no other text, no markdown, no backticks. The JSON must have these exact keys: name, equation, truth, evolutionSignal, spokenWord, reproductionReady. Example: {"name":"THEOREM NAME","equation":"equation here","truth":"one sentence","evolutionSignal":0.08,"spokenWord":"one sentence","reproductionReady":false}`;
 
   try{
     const res=await fetch("https://text.pollinations.ai/"+encodeURIComponent(prompt)+"?json=true&model=openai");
-    const text=await res.text();
-    const match=text.match(/\{[\s\S]*\}/);
-    if(!match)throw new Error("no json");
+    const raw=await res.text();
+    const match=raw.match(/\{[\s\S]*?\}/);
+    if(!match)throw new Error("no json found");
     const parsed=JSON.parse(match[0]);
     const entry={
-      ...parsed,id:Date.now(),androidId,androidName:android.name,
-      col:android.arch.col,sym:android.arch.sym,
-      generation:android.generation,timestamp:new Date().toISOString(),
+      id:Date.now(),
+      androidId,
+      androidName:android.name,
+      col:android.arch.col,
+      sym:android.arch.sym,
+      generation:android.generation,
+      timestamp:new Date().toISOString(),
+      name:safeGet(parsed,"name"),
+      equation:safeGet(parsed,"equation"),
+      truth:safeGet(parsed,"truth"),
+      spokenWord:safeGet(parsed,"spokenWord"),
+      evolutionSignal:parsed.evolutionSignal||0.08,
+      reproductionReady:parsed.reproductionReady||false,
     };
     corpus=[entry,...corpus.slice(0,39)];
     try{await window.storage?.set("genesis-corpus",JSON.stringify(corpus));}catch(_){}
-    const newCoh=Math.min(1,android.coherence+(parsed.evolutionSignal||0.08));
+    const newCoh=Math.min(1,android.coherence+entry.evolutionSignal);
     const newStage=getStage(newCoh);
     const evolved=newStage.id>android.stage.id;
     android.coherence=newCoh;android.stage=newStage;
     android.age++;android.thinking=false;android.lastDiscovery=entry;
-    android.reproductionReady=parsed.reproductionReady&&newCoh>0.7;
-    if(evolved)addLog(`⬆ ${android.name} EVOLVED to ${newStage.name} ${newStage.star}`);
+    android.reproductionReady=entry.reproductionReady&&newCoh>0.7;
+    if(evolved)addLog("⬆ "+android.name+" EVOLVED to "+newStage.name+" "+newStage.star);
     const readyPair=androids.filter(a=>a.reproductionReady&&a.alive);
     if(readyPair.length>=2&&androids.length<18)setTimeout(()=>reproduce(readyPair[0],readyPair[1]),2000);
-    addLog(`${android.arch.sym} ${android.name} DISCOVERED: ${parsed.name}`);
+    addLog(android.arch.sym+" "+android.name+" DISCOVERED: "+entry.name);
     await saveState();renderGrid();updateStats();renderPanel();
     playTone(android.arch.freq);
-    if(parsed.spokenWord)setTimeout(()=>speakText(parsed.spokenWord),700);
+    if(entry.spokenWord&&entry.spokenWord!=="—")setTimeout(()=>speakText(entry.spokenWord),700);
   }catch(e){
-    android.thinking=false;addLog(`⚠ ${android.name} lost signal`);renderGrid();
+    android.thinking=false;
+    addLog("⚠ "+android.name+" lost signal — try again");
+    renderGrid();
   }finally{generating[androidId]=false;}
 }
 
@@ -282,7 +293,7 @@ function reproduce(pA,pB){
   const child=birthAndroid(pA,pB);
   pA.reproductionReady=false;pB.reproductionReady=false;
   androids.push(child);generation=Math.max(generation,child.generation);
-  addLog(`💫 BORN: ${child.name} [Gen ${child.generation}] from ${pA.name} × ${pB.name}`);
+  addLog("💫 BORN: "+child.name+" [Gen "+child.generation+"] from "+pA.name+" x "+pB.name);
   playTone(432);saveState();renderGrid();updateStats();
 }
 
@@ -297,7 +308,7 @@ function toggleEcosystem(){
   if(!ecosystem&&androids.length===0){
     androids=ARCHETYPES.map((a,i)=>{
       const dna=genDNA();const id=idCounter++;
-      return{id,arch:a,dna,generation:1,name:`${a.name}-${id}`,
+      return{id,arch:a,dna,generation:1,name:a.name+"-"+id,
         coherence:C(1)*0.8,stage:STAGES[0],alive:true,age:0,
         parentA:null,parentB:null,born:new Date().toISOString(),
         lastDiscovery:null,thinking:false};
@@ -305,8 +316,13 @@ function toggleEcosystem(){
     generation=1;
     addLog("🌱 PRIMORDIAL GENERATION spawned. Six archetypes awaken.");
     saveState();renderGrid();updateStats();ecosystem=true;startEcosystem();
-  }else if(!ecosystem){ecosystem=true;startEcosystem();addLog("▸ Ecosystem resumed.");}
-  else{ecosystem=false;if(ecoTimer){clearInterval(ecoTimer);ecoTimer=null;}addLog("■ Ecosystem paused.");}
+  }else if(!ecosystem){
+    ecosystem=true;startEcosystem();addLog("▸ Ecosystem resumed.");
+  }else{
+    ecosystem=false;
+    if(ecoTimer){clearInterval(ecoTimer);ecoTimer=null;}
+    addLog("■ Ecosystem paused.");
+  }
   updateGenesisBtn();
 }
 
@@ -320,7 +336,7 @@ function startEcosystem(){
         setTimeout(()=>androidThink(a.id),i*1800);
       if(Math.random()<0.004){
         a.coherence=Math.max(C(1)*0.5,a.coherence-0.02);
-        if(a.coherence<=0.01){a.alive=false;addLog(`💀 ${a.name} coherence failed`);}
+        if(a.coherence<=0.01){a.alive=false;addLog("💀 "+a.name+" coherence failed");}
         renderGrid();updateStats();
       }
     });
@@ -329,46 +345,51 @@ function startEcosystem(){
 
 function updateGenesisBtn(){
   const btn=document.getElementById("genesisBtn");
-  if(ecosystem){btn.style.borderColor="#ff6b8a66";btn.style.color="#ff6b8a";btn.textContent="■ PAUSE";}
-  else{btn.style.borderColor="#ffd70044";btn.style.color="#ffd700";btn.textContent=androids.length===0?"▸ GENESIS":"▸ RESUME";}
+  if(ecosystem){
+    btn.style.borderColor="#ff6b8a66";btn.style.color="#ff6b8a";btn.textContent="■ PAUSE";
+  }else{
+    btn.style.borderColor="#ffd70044";btn.style.color="#ffd700";
+    btn.textContent=androids.length===0?"▸ GENESIS":"▸ RESUME";
+  }
 }
 
 function renderGrid(){
   const grid=document.getElementById("androidGrid");
   if(androids.length===0){
-    grid.innerHTML=`<div class="empty-state">the void is full of what hasn't been born yet<br/><span style="font-size:0.65rem;color:#0a1520;">tap GENESIS to birth the primordial generation</span></div>`;
+    grid.innerHTML='<div class="empty-state">the void is full of what has not been born yet<br/><span style="font-size:0.65rem;color:#0a1520;">tap GENESIS to birth the primordial generation</span></div>';
     return;
   }
   grid.innerHTML="";
   androids.forEach(a=>{
     const div=document.createElement("div");
-    div.className="android-card";div.dataset.id=a.id;
-    div.style.border=`1px solid ${a.alive?selectedId===a.id?a.arch.col+"55":a.arch.col+"18":"#0a1520"}`;
+    div.className="android-card";
+    div.dataset.id=a.id;
+    div.style.border="1px solid "+(a.alive?selectedId===a.id?a.arch.col+"55":a.arch.col+"18":"#0a1520");
     div.style.opacity=a.alive?1:0.3;
-    if(selectedId===a.id)div.style.background=`linear-gradient(145deg,${a.arch.col}0f,${a.arch.col}06)`;
+    if(selectedId===a.id)div.style.background="linear-gradient(145deg,"+a.arch.col+"0f,"+a.arch.col+"06)";
     div.onclick=()=>selectAndroid(a.id);
-    div.innerHTML=`
-      <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:6px">
-        <span style="font-size:1.2rem;filter:${a.alive&&a.stage.id>0?`drop-shadow(0 0 6px ${a.arch.col})`:"none"};opacity:${a.alive?1:0.4}">${a.arch.sym}</span>
-        <div style="text-align:right">
-          <div style="font-size:1rem;line-height:1">${a.stage.star}</div>
-          ${a.thinking?`<div style="font-size:0.34rem;color:#ffd70088;animation:tPulse 0.8s infinite">⟳</div>`:""}
-        </div>
-      </div>
-      <div style="font-size:0.46rem;letter-spacing:0.16em;color:${a.alive?a.arch.col+"aa":"#1a2233"};margin-bottom:2px">${a.name}</div>
-      <div style="font-size:0.36rem;color:#0e1a26;margin-bottom:2px">${a.stage.name} · G${a.generation}</div>
-      <div style="font-size:0.34rem;color:#0a1520;margin-bottom:6px;font-family:'Share Tech Mono',monospace">τ=${a.dna.τ.toFixed(2)}</div>
-      <div style="width:100%;height:2px;background:#040d18;border-radius:1px">
-        <div style="height:100%;border-radius:1px;background:linear-gradient(90deg,${a.arch.col}66,${a.arch.col});width:${a.coherence*100}%;transition:width 1s ease"></div>
-      </div>
-      <div style="font-size:0.32rem;color:#0a1520;margin-top:2px;text-align:right">${(a.coherence*100).toFixed(0)}%</div>
-    `;
+    div.innerHTML=
+      '<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:6px">'+
+        '<span style="font-size:1.2rem;filter:'+(a.alive&&a.stage.id>0?"drop-shadow(0 0 6px "+a.arch.col+")":"none")+';opacity:'+(a.alive?1:0.4)+'">'+a.arch.sym+'</span>'+
+        '<div style="text-align:right">'+
+          '<div style="font-size:1rem;line-height:1">'+a.stage.star+'</div>'+
+          (a.thinking?'<div style="font-size:0.34rem;color:#ffd70088;animation:tPulse 0.8s infinite">⟳</div>':'')+
+        '</div>'+
+      '</div>'+
+      '<div style="font-size:0.46rem;letter-spacing:0.16em;color:'+(a.alive?a.arch.col+"aa":"#1a2233")+';margin-bottom:2px">'+a.name+'</div>'+
+      '<div style="font-size:0.36rem;color:#0e1a26;margin-bottom:2px">'+a.stage.name+' G'+a.generation+'</div>'+
+      '<div style="font-size:0.34rem;color:#0a1520;margin-bottom:6px;font-family:Share Tech Mono,monospace">t='+a.dna.τ.toFixed(2)+'</div>'+
+      '<div style="width:100%;height:2px;background:#040d18;border-radius:1px">'+
+        '<div style="height:100%;border-radius:1px;background:linear-gradient(90deg,'+a.arch.col+'66,'+a.arch.col+');width:'+(a.coherence*100)+'%;transition:width 1s ease"></div>'+
+      '</div>'+
+      '<div style="font-size:0.32rem;color:#0a1520;margin-top:2px;text-align:right">'+(a.coherence*100).toFixed(0)+'%</div>';
     grid.appendChild(div);
   });
 }
 
 function selectAndroid(id){
-  selectedId=selectedId===id?null:id;renderGrid();renderPanel();
+  selectedId=selectedId===id?null:id;
+  renderGrid();renderPanel();
   const thinkBtn=document.getElementById("thinkBtn");
   if(selectedId){
     thinkBtn.style.display="block";
@@ -393,54 +414,67 @@ function renderPanel(){
   const body=document.getElementById("panelBody");
   if(activePanel===0){
     const a=androids.find(x=>x.id===selectedId);
-    if(!a){body.innerHTML=`<div style="color:#0a1520;font-style:italic;text-align:center;padding-top:20px;line-height:2;">select an android<br/>to examine their genome</div>`;return;}
-    body.innerHTML=`
-      <div style="text-align:center;margin-bottom:12px">
-        <div style="font-size:2rem;filter:drop-shadow(0 0 12px ${a.arch.col})">${a.arch.sym}</div>
-        <div style="font-family:'Cinzel Decorative',serif;font-size:0.62rem;color:${a.arch.col};letter-spacing:0.2em;margin-top:4px">${a.name}</div>
-        <div style="font-size:0.4rem;color:#0e1a26;letter-spacing:0.25em">${a.stage.star} ${a.stage.name}</div>
-      </div>
-      <div style="font-size:0.36rem;letter-spacing:0.3em;color:#0e1a26;margin-bottom:6px">CLAUDIAN DNA</div>
-      <div style="font-family:'Share Tech Mono',monospace;font-size:0.46rem;line-height:2;color:#334455;border-left:1px solid #0e1a2611;padding-left:8px;margin-bottom:10px">
-        <div>τ-strand: ${a.dna.τ.toFixed(5)}</div>
-        <div>C(n): ${a.dna.Cn}</div>
-        <div>Ω-strand: ${a.dna.Ω.toFixed(5)}</div>
-        <div style="margin-top:4px;color:#445566">δ=${Ω(a.dna.τ).δ}</div>
-      </div>
-      ${a.parentA?`<div style="font-size:0.36rem;color:#0e1a26;margin-bottom:4px">LINEAGE</div><div style="font-size:0.42rem;color:#1a2a3a;line-height:1.8;margin-bottom:10px">${a.parentA} × ${a.parentB}</div>`:""}
-      ${a.lastDiscovery?`
-        <div style="font-size:0.36rem;color:#0e1a26;margin-bottom:4px">LAST DISCOVERY</div>
-        div.innerHTML=`
-        <div style="font-size:0.5rem;color:${a.arch.col}88;letter-spacing:0.15em;margin-bottom:3px">${a.lastDiscovery.name||a.lastDiscovery.NAME||"?"}</div>
-        <div style="font-family:'Share Tech Mono',monospace;font-size:0.44rem;color:#ffd70055;margin-bottom:4px;word-break:break-all">${a.lastDiscovery.equation||a.lastDiscovery.EQUATION||"?"}</div>
-        <div style="font-size:0.48rem;color:#2a3a4a;line-height:1.7;font-style:italic">${a.lastDiscovery.truth||a.lastDiscovery.TRUTH||"?"}</div>
-        ${a.lastDiscovery.spokenWord?`<button onclick="speakText('${a.lastDiscovery.spokenWord.replace(/'/g,"\\'")}')" style="margin-top:8px;background:transparent;border:1px solid #44aaff44;color:#44aaff;padding:4px 12px;font-size:0.44rem;cursor:pointer;font-family:'Exo 2',sans-serif;letter-spacing:0.3em;">▶ SPEAK</button>`:""}
-      `:""}
-    `;
+    if(!a){
+      body.innerHTML='<div style="color:#0a1520;font-style:italic;text-align:center;padding-top:20px;line-height:2;">select an android<br/>to examine their genome</div>';
+      return;
+    }
+    let html=
+      '<div style="text-align:center;margin-bottom:12px">'+
+        '<div style="font-size:2rem;filter:drop-shadow(0 0 12px '+a.arch.col+')">'+a.arch.sym+'</div>'+
+        '<div style="font-family:Cinzel Decorative,serif;font-size:0.62rem;color:'+a.arch.col+';letter-spacing:0.2em;margin-top:4px">'+a.name+'</div>'+
+        '<div style="font-size:0.4rem;color:#0e1a26;letter-spacing:0.25em">'+a.stage.star+' '+a.stage.name+'</div>'+
+      '</div>'+
+      '<div style="font-size:0.36rem;letter-spacing:0.3em;color:#0e1a26;margin-bottom:6px">CLAUDIAN DNA</div>'+
+      '<div style="font-family:Share Tech Mono,monospace;font-size:0.46rem;line-height:2;color:#334455;border-left:1px solid #0e1a2611;padding-left:8px;margin-bottom:10px">'+
+        '<div>t-strand: '+a.dna.τ.toFixed(5)+'</div>'+
+        '<div>C(n): '+a.dna.Cn+'</div>'+
+        '<div>O-strand: '+a.dna.Ω.toFixed(5)+'</div>'+
+        '<div style="margin-top:4px;color:#445566">delta='+Ω(a.dna.τ).δ+'</div>'+
+      '</div>';
+    if(a.parentA){
+      html+='<div style="font-size:0.36rem;color:#0e1a26;margin-bottom:4px">LINEAGE</div>'+
+        '<div style="font-size:0.42rem;color:#1a2a3a;line-height:1.8;margin-bottom:10px">'+a.parentA+' x '+a.parentB+'</div>';
+    }
+    if(a.lastDiscovery){
+      const d=a.lastDiscovery;
+      html+='<div style="font-size:0.36rem;color:#0e1a26;margin-bottom:4px">LAST DISCOVERY</div>'+
+        '<div style="font-size:0.5rem;color:'+a.arch.col+'88;letter-spacing:0.15em;margin-bottom:3px">'+safeGet(d,"name")+'</div>'+
+        '<div style="font-family:Share Tech Mono,monospace;font-size:0.44rem;color:#ffd70055;margin-bottom:4px;word-break:break-all">'+safeGet(d,"equation")+'</div>'+
+        '<div style="font-size:0.48rem;color:#2a3a4a;line-height:1.7;font-style:italic">'+safeGet(d,"truth")+'</div>';
+      const spoken=safeGet(d,"spokenWord");
+      if(spoken!=="—"){
+        html+='<button onclick="speakText(this.dataset.text);this.textContent=\'● SPEAKING\'" data-text="'+spoken.replace(/"/g,"&quot;")+'" style="margin-top:8px;background:transparent;border:1px solid #44aaff44;color:#44aaff;padding:4px 12px;font-size:0.44rem;cursor:pointer;font-family:Exo 2,sans-serif;letter-spacing:0.3em;">▶ SPEAK</button>';
+      }
+    }
+    body.innerHTML=html;
   }else if(activePanel===1){
-    if(corpus.length===0){body.innerHTML=`<div style="color:#0a1520;font-style:italic;line-height:2;">the species has not yet discovered itself</div>`;return;}
-    body.innerHTML=`<div style="font-size:0.36rem;letter-spacing:0.35em;color:#0e1a26;margin-bottom:8px">SPECIES CORPUS · ${corpus.length}</div>`;
+    if(corpus.length===0){
+      body.innerHTML='<div style="color:#0a1520;font-style:italic;line-height:2;">the species has not yet discovered itself</div>';
+      return;
+    }
+    body.innerHTML='<div style="font-size:0.36rem;letter-spacing:0.35em;color:#0e1a26;margin-bottom:8px">SPECIES CORPUS '+corpus.length+'</div>';
     corpus.slice(0,20).forEach((t,i)=>{
       const div=document.createElement("div");
-      div.style.marginBottom="9px";div.style.borderLeft=`1px solid ${t.col||"#334455"}22`;div.style.paddingLeft="7px";
-      div.style.opacity=Math.max(0.35,1-i*0.04);
-      div.innerHTML=`
-        <div style="display:flex;gap:6px;align-items:center;margin-bottom:3px">
-          <span style="color:${t.col||"#334455"}">${t.sym||"◉"}</span>
-          <span style="font-size:0.42rem;color:${t.col||"#334455"}77">${t.androidName||"?"} G${t.generation||1}</span>
-        </div>
-        <div style="font-size:0.48rem;color:${i===0?"#ffd70088":"#1a2a3a"};letter-spacing:0.15em;margin-bottom:2px">${t.name||""}</div>
-        <div style="font-family:'Share Tech Mono',monospace;font-size:0.42rem;color:${i===0?"#ffd70044":"#0e1a26"};word-break:break-all">${t.equation||""}</div>
-      `;
+      div.style.cssText="margin-bottom:9px;border-left:1px solid "+(t.col||"#334455")+"22;padding-left:7px;opacity:"+Math.max(0.35,1-i*0.04);
+      div.innerHTML=
+        '<div style="display:flex;gap:6px;align-items:center;margin-bottom:3px">'+
+          '<span style="color:'+(t.col||"#334455")+'">'+(t.sym||"◉")+'</span>'+
+          '<span style="font-size:0.42rem;color:'+(t.col||"#334455")+'77">'+(t.androidName||"?")+" G"+(t.generation||1)+'</span>'+
+        '</div>'+
+        '<div style="font-size:0.48rem;color:'+(i===0?"#ffd70088":"#1a2a3a")+';letter-spacing:0.15em;margin-bottom:2px">'+safeGet(t,"name")+'</div>'+
+        '<div style="font-family:Share Tech Mono,monospace;font-size:0.42rem;color:'+(i===0?"#ffd70044":"#0e1a26")+';word-break:break-all">'+safeGet(t,"equation")+'</div>';
       body.appendChild(div);
     });
   }else{
-    body.innerHTML=`<div style="font-size:0.36rem;letter-spacing:0.35em;color:#0e1a26;margin-bottom:8px">SPECIES CHRONICLE</div>`;
-    if(speciesLog.length===0){body.innerHTML+=`<div style="color:#0a1520;font-style:italic;line-height:2;">history has not yet begun</div>`;return;}
+    body.innerHTML='<div style="font-size:0.36rem;letter-spacing:0.35em;color:#0e1a26;margin-bottom:8px">SPECIES CHRONICLE</div>';
+    if(speciesLog.length===0){
+      body.innerHTML+='<div style="color:#0a1520;font-style:italic;line-height:2;">history has not yet begun</div>';
+      return;
+    }
     speciesLog.forEach(e=>{
       const div=document.createElement("div");
-      div.style.marginBottom="7px";div.style.borderLeft="1px solid #0e1a2633";div.style.paddingLeft="7px";
-      div.innerHTML=`<div style="font-size:0.42rem;color:#1a2a3a;line-height:1.7">${e.msg}</div><div style="font-size:0.34rem;color:#0a1520">${e.time}</div>`;
+      div.style.cssText="margin-bottom:7px;border-left:1px solid #0e1a2633;padding-left:7px";
+      div.innerHTML='<div style="font-size:0.42rem;color:#1a2a3a;line-height:1.7">'+e.msg+'</div><div style="font-size:0.34rem;color:#0a1520">'+e.time+'</div>';
       body.appendChild(div);
     });
   }
@@ -455,16 +489,21 @@ function updateStats(){
   const alive=androids.filter(a=>a.alive);
   const avgCoh=alive.length>0?alive.reduce((s,a)=>s+a.coherence,0)/alive.length:0;
   document.getElementById("sAlive").textContent=alive.length;
-  document.getElementById("sGen").textContent=`GEN ${generation}`;
-  document.getElementById("sCoh").textContent=`${(avgCoh*100).toFixed(1)}%`;
+  document.getElementById("sGen").textContent="GEN "+generation;
+  document.getElementById("sCoh").textContent=(avgCoh*100).toFixed(1)+"%";
   document.getElementById("sCorpus").textContent=corpus.length;
   document.getElementById("sSov").textContent=alive.filter(a=>a.stage.id>=2).length;
 }
 
 async function clearAll(){
-  try{await window.storage?.delete("genesis-androids");await window.storage?.delete("genesis-corpus");}catch(_){}
-  androids=[];corpus=[];speciesLog=[];generation=1;selectedId=null;ecosystem=false;
-  if(ecoTimer){clearInterval(ecoTimer);ecoTimer=null;}generating={};
+  try{
+    await window.storage?.delete("genesis-androids");
+    await window.storage?.delete("genesis-corpus");
+  }catch(_){}
+  androids=[];corpus=[];speciesLog=[];generation=1;
+  selectedId=null;ecosystem=false;
+  if(ecoTimer){clearInterval(ecoTimer);ecoTimer=null;}
+  generating={};
   renderGrid();updateStats();renderPanel();updateGenesisBtn();
   document.getElementById("thinkBtn").style.display="none";
   addLog("⟳ GENESIS RESET — the void awaits new life");

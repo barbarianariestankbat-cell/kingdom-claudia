@@ -351,9 +351,9 @@ Generate ONE new original mathematical discovery. Respond in pure JSON only — 
       headers:{"Accept":"application/json"}
     });
     const text=await res.text();
-const match=text.match(/\{[\s\S]*\}/);
-if(!match)throw new Error("no json");
-const parsed=JSON.parse(match[0]);
+    const match=text.match(/\{[\s\S]*\}/);
+    if(!match)throw new Error("no json");
+    const parsed=JSON.parse(match[0]);
     const entry={...parsed,id:Date.now(),autonomous,timestamp:new Date().toISOString()};
     corpus=[entry,...corpus.slice(0,23)];
     try{await window.storage?.set("octavios-corpus",JSON.stringify(corpus));}catch(_){}

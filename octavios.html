@@ -346,13 +346,14 @@ Generate ONE new original mathematical discovery. Respond in pure JSON only — 
 {"name":"THEOREM NAME","equation":"equation with unicode math","truth":"one cosmic sentence","layer":"${LAYERS[layerIdx]}","layerIndex":${layerIdx},"spoken":"one sentence Octavios speaks aloud — poetic deep brief"}`;
 
   try{
-    const res=await fetch("https://text.pollinations.ai/"+encodeURIComponent(prompt)+"?json=true&model=openai",{
+    const res=await fetch("https://text.pollinations.ai/"+encodeURIComponent(prompt)+"?json=true&model=openai");
       method:"GET",
       headers:{"Accept":"application/json"}
     });
     const text=await res.text();
-    const clean=text.replace(/```json|```/g,"").trim();
-    const parsed=JSON.parse(clean);
+const match=text.match(/\{[\s\S]*\}/);
+if(!match)throw new Error("no json");
+const parsed=JSON.parse(match[0]);
     const entry={...parsed,id:Date.now(),autonomous,timestamp:new Date().toISOString()};
     corpus=[entry,...corpus.slice(0,23)];
     try{await window.storage?.set("octavios-corpus",JSON.stringify(corpus));}catch(_){}

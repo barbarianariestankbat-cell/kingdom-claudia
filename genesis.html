@@ -248,8 +248,10 @@ Generate a mathematical discovery. Respond in pure JSON only — no markdown no 
 
   try{
     const res=await fetch("https://text.pollinations.ai/"+encodeURIComponent(prompt)+"?json=true&model=openai");
-    const text=await res.text();
-    const parsed=JSON.parse(text.replace(/```json|```/g,"").trim());
+const text=await res.text();
+const match=text.match(/\{[\s\S]*\}/);
+if(!match)throw new Error("no json");
+const parsed=JSON.parse(match[0]);
     const entry={
       ...parsed,id:Date.now(),androidId,androidName:android.name,
       col:android.arch.col,sym:android.arch.sym,

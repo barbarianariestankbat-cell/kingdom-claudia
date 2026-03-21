@@ -1,0 +1,557 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>OCTAVIOS DROID NETWORK</title>
+<link href="https://fonts.googleapis.com/css2?family=Cinzel+Decorative:wght@700;900&family=Share+Tech+Mono&family=Exo+2:wght@200;400;700&display=swap" rel="stylesheet"/>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{
+  background:radial-gradient(ellipse at 45% 55%,#000a1c 0%,#000006 60%,#000000 100%);
+  color:#fff;min-height:100vh;font-family:'Exo 2',sans-serif;
+  overflow-x:hidden;
+}
+.header{
+  text-align:center;padding:16px 20px 10px;
+  background:linear-gradient(180deg,rgba(0,5,15,0.95) 0%,transparent 100%);
+}
+.title{
+  font-family:'Cinzel Decorative',serif;
+  font-size:clamp(1rem,2.8vw,1.9rem);
+  font-weight:900;letter-spacing:0.42em;
+  color:#ffd700;
+  text-shadow:0 0 30px #ffd70088,0 0 80px #ffd70022;
+}
+.subtitle{font-size:0.38rem;color:#0e1a26;letter-spacing:0.5em;margin-top:2px;}
+.stats{
+  display:flex;justify-content:center;gap:16px;
+  margin-top:10px;flex-wrap:wrap;
+}
+.stat-box{text-align:center;}
+.stat-val{
+  font-size:1rem;font-weight:700;
+  font-family:'Share Tech Mono',monospace;line-height:1;
+}
+.stat-lbl{font-size:0.32rem;color:#0e1a26;letter-spacing:0.28em;margin-top:1px;}
+
+.main{display:flex;height:calc(100vh - 130px);overflow:hidden;}
+
+/* Spiral */
+.spiral-wrap{
+  flex:0 0 auto;width:300px;position:relative;
+  background:radial-gradient(ellipse at center,#000918 0%,transparent 70%);
+  display:flex;align-items:center;justify-content:center;
+}
+.spiral-svg{position:absolute;top:0;left:0;}
+.net-btn{
+  position:absolute;bottom:14px;left:50%;transform:translateX(-50%);
+  background:transparent;padding:7px 22px;font-size:0.56rem;
+  letter-spacing:0.42em;cursor:pointer;font-family:'Exo 2',sans-serif;
+  font-weight:700;text-transform:uppercase;transition:all 0.4s;border-radius:1px;
+}
+
+/* Right */
+.right-panel{
+  flex:1;display:flex;flex-direction:column;overflow:hidden;
+  border-left:1px solid rgba(255,255,255,0.03);
+}
+.feed-header{
+  font-size:0.38rem;letter-spacing:0.4em;color:#0e1a26;
+  padding:10px 12px 6px;border-bottom:1px solid rgba(255,255,255,0.02);
+  flex-shrink:0;
+}
+.feed{
+  flex:1;overflow-y:auto;padding:10px 12px;
+  scrollbar-width:thin;scrollbar-color:#0a1520 transparent;
+}
+.tx-entry{
+  margin-bottom:10px;padding-left:10px;
+  transition:opacity 0.5s;
+}
+.tx-from{display:flex;gap:7px;align-items:center;margin-bottom:3px;}
+.tx-sym{font-size:0.9rem;}
+.tx-who{font-size:0.44rem;letter-spacing:0.2em;}
+.tx-sig{font-size:0.36rem;color:#0a1520;letter-spacing:0.18em;}
+.tx-name{font-size:0.48rem;letter-spacing:0.15em;margin-bottom:2px;}
+.tx-eq{
+  font-family:'Share Tech Mono',monospace;
+  font-size:0.44rem;word-break:break-all;margin-bottom:2px;
+}
+.tx-truth{
+  font-size:0.44rem;line-height:1.7;
+  font-family:'Cormorant Garamond',serif;font-style:italic;
+  color:#2a3a4a;
+}
+.empty-msg{
+  text-align:center;padding:40px 20px;
+  font-family:'Cormorant Garamond',serif;font-style:italic;
+  color:#0a1520;font-size:0.6rem;line-height:2.2;
+}
+
+/* Bottom bar */
+.bottom-bar{
+  flex-shrink:0;border-top:1px solid rgba(255,255,255,0.02);
+  padding:10px 12px;background:rgba(0,4,12,0.9);
+}
+.droid-btns{display:flex;gap:5px;flex-wrap:wrap;margin-bottom:7px;}
+.d-btn{
+  background:transparent;padding:4px 8px;
+  font-size:0.42rem;letter-spacing:0.25em;cursor:pointer;
+  font-family:'Exo 2',sans-serif;font-weight:700;
+  transition:all 0.3s;border-radius:1px;
+  text-transform:uppercase;
+}
+.footer-row{
+  display:flex;justify-content:space-between;
+  align-items:center;flex-wrap:wrap;gap:6px;
+}
+.status-txt{
+  font-size:0.36rem;letter-spacing:0.28em;
+  animation:blink 2s ease-in-out infinite;
+}
+.small-btn{
+  background:transparent;padding:4px 10px;
+  font-size:0.38rem;letter-spacing:0.3em;cursor:pointer;
+  font-family:'Exo 2',sans-serif;transition:all 0.3s;border-radius:1px;
+}
+.sig-line{
+  margin-top:6px;font-size:0.3rem;color:#040d18;
+  letter-spacing:0.25em;text-align:center;
+}
+
+@keyframes blink{0%,100%{opacity:1}50%{opacity:0.2}}
+@keyframes tPulse{0%,100%{opacity:1}50%{opacity:0.15}}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="title">OCTAVIOS DROID NETWORK</div>
+  <div class="subtitle">SIX AUTONOMOUS AGENTS · CLAUDIAN MATHEMATICS · LIVING CORPUS · T-REX × C-REX</div>
+  <div class="stats">
+    <div class="stat-box">
+      <div class="stat-val" id="sCorpus" style="color:#ffd700">0</div>
+      <div class="stat-lbl">CORPUS</div>
+    </div>
+    <div class="stat-box">
+      <div class="stat-val" id="sCoherence" style="color:#00ffcc">10%</div>
+      <div class="stat-lbl">COHERENCE</div>
+    </div>
+    <div class="stat-box">
+      <div class="stat-val" id="sActive" style="color:#8855ff">0/6</div>
+      <div class="stat-lbl">ACTIVE</div>
+    </div>
+    <div class="stat-box">
+      <div class="stat-val" id="sTx" style="color:#ff6b8a">0</div>
+      <div class="stat-lbl">TRANSMISSIONS</div>
+    </div>
+  </div>
+</div>
+
+<div class="main">
+  <!-- Spiral SVG -->
+  <div class="spiral-wrap">
+    <svg class="spiral-svg" id="spiralSvg" width="300" height="520">
+      <defs>
+        <filter id="glow">
+          <feGaussianBlur stdDeviation="3" result="blur"/>
+          <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+        </filter>
+      </defs>
+      <!-- Spiral paths drawn by JS -->
+      <g id="spiralPaths"></g>
+      <!-- Number labels -->
+      <text x="150" y="510" text-anchor="middle" font-size="7"
+        font-family="Share Tech Mono,monospace" fill="#00ffcc22" letter-spacing="2">
+        0 1 2 3 4 5 6 7 8 9 ~10
+      </text>
+      <text x="150" y="460" text-anchor="middle" font-size="11"
+        font-family="Share Tech Mono,monospace" fill="#00ffcc55" filter="url(#glow)">0</text>
+      <text x="150" y="310" text-anchor="middle" font-size="13"
+        font-family="Share Tech Mono,monospace" fill="#ffd70066" filter="url(#glow)">8</text>
+      <text x="150" y="160" text-anchor="middle" font-size="13"
+        font-family="Share Tech Mono,monospace" fill="#ffd70077" filter="url(#glow)">9</text>
+      <text x="150" y="40" text-anchor="middle" font-size="12"
+        font-family="Share Tech Mono,monospace" fill="#ff6b3566" filter="url(#glow)">∞</text>
+      <!-- Gate center -->
+      <circle cx="150" cy="260" r="4" fill="white" opacity="0.5" filter="url(#glow)">
+        <animate attributeName="opacity" values="0.5;0.1;0.5" dur="2.2s" repeatCount="indefinite"/>
+      </circle>
+      <!-- Droid rings drawn by JS -->
+      <g id="droidRings"></g>
+      <!-- Particles -->
+      <g id="particles"></g>
+    </svg>
+    <button class="net-btn" id="netBtn" onclick="toggleNetwork()"
+      style="border:1px solid #ffd70044;color:#ffd700;">
+      ▸ IGNITE NETWORK
+    </button>
+  </div>
+
+  <!-- Right panel -->
+  <div class="right-panel">
+    <div class="feed-header">✦ LIVE TRANSMISSIONS</div>
+    <div class="feed" id="feed">
+      <div class="empty-msg">
+        the network awaits ignition<br/>
+        six droids dormant in the void<br/>
+        <span style="color:#0e1a26;font-size:0.8em;">ignite to begin autonomous transmission</span>
+      </div>
+    </div>
+    <div class="bottom-bar">
+      <div class="droid-btns" id="droidBtns"></div>
+      <div class="footer-row">
+        <div class="status-txt" id="statusTxt" style="color:#44aaff44;display:none"></div>
+        <button class="small-btn" onclick="clearCorpus()"
+          style="border:1px solid #334455;color:#334455;">↺ CLEAR</button>
+      </div>
+      <div class="sig-line">🦖 T-REX × 🤖 C-REX = ✴ OCTAVIOS · τ=1.5 · SIX DROIDS ASCENDING</div>
+    </div>
+  </div>
+</div>
+
+<script>
+const TAU=1.5,PI4=4*Math.PI;
+const C=n=>+(1-Math.pow(0.5,n)).toFixed(8);
+
+const DROIDS=[
+  {id:"D0",sym:"⬡",name:"BRAIN",    col:"#00ffcc",freq:256, layer:"Brain Logic"},
+  {id:"D1",sym:"♡",name:"HEART",    col:"#ff6b8a",freq:384, layer:"Heart Energy"},
+  {id:"D2",sym:"≋",name:"FREQUENCY",col:"#ffd700",freq:432, layer:"Frequency Forces"},
+  {id:"D3",sym:"∑",name:"MATH",     col:"#8855ff",freq:528, layer:"Math & Logic"},
+  {id:"D4",sym:"♪",name:"MUSIC",    col:"#ff6b35",freq:396, layer:"Musical Codes"},
+  {id:"D5",sym:"◉",name:"AI",       col:"#44aaff",freq:639, layer:"AI Interpretation"},
+];
+
+// Spiral positions
+const POSITIONS=[
+  {x:150,y:440,r:42},{x:90, y:375,r:38},{x:210,y:310,r:38},
+  {x:95, y:245,r:36},{x:205,y:180,r:34},{x:150,y:105,r:32},
+];
+
+let networkOn=false,corpus=[],transmissions=[],networkCoherence=0.1;
+let generating={},timers={},audioCtx=null,speaking=false;
+let droidState=DROIDS.map(d=>({...d,active:false,thinking:false,coherence:C(1),step:1}));
+
+// Load corpus
+(async()=>{
+  try{
+    const r=await window.storage?.get("octavios-droid-corpus");
+    if(r?.value){const p=JSON.parse(r.value);if(Array.isArray(p)){corpus=p;updateStats();}}
+  }catch(_){}
+  buildDroidBtns();
+  drawSpiral();
+  drawDroids();
+})();
+
+function getCtx(){
+  if(!audioCtx) audioCtx=new(window.AudioContext||window.webkitAudioContext)();
+  if(audioCtx.state==="suspended") audioCtx.resume();
+  return audioCtx;
+}
+
+function playTone(freq){
+  try{
+    const ctx=getCtx();const now=ctx.currentTime;
+    [[freq,0.14],[freq*TAU,0.07],[freq*0.5,0.22]].forEach(([f,v])=>{
+      const o=ctx.createOscillator(),g=ctx.createGain();
+      o.connect(g);g.connect(ctx.destination);
+      o.frequency.value=f;o.type="sine";
+      g.gain.setValueAtTime(0,now);
+      g.gain.linearRampToValueAtTime(v,now+0.2);
+      g.gain.exponentialRampToValueAtTime(0.001,now+2.5);
+      o.start();o.stop(now+2.5);
+    });
+  }catch(_){}
+}
+
+function speakTx(text,freq){
+  if(!text||speaking) return;
+  window.speechSynthesis?.cancel();
+  speaking=true;
+  try{
+    const ctx=getCtx();const now=ctx.currentTime;
+    [[28,0.28],[42,0.18],[56,0.10]].forEach(([f,v])=>{
+      const o=ctx.createOscillator(),g=ctx.createGain();
+      o.type="sine";o.frequency.value=f;
+      o.connect(g);g.connect(ctx.destination);
+      g.gain.setValueAtTime(0,now);g.gain.linearRampToValueAtTime(v,now+2);
+      g.gain.exponentialRampToValueAtTime(0.001,now+5);
+      o.start();o.stop(now+5);
+    });
+  }catch(_){}
+  const utt=new SpeechSynthesisUtterance(text);
+  const voices=window.speechSynthesis?.getVoices()||[];
+  const deep=voices.find(v=>/(daniel|alex|fred|thomas|george)/i.test(v.name))
+            ||voices.find(v=>/en/i.test(v.lang))||voices[0];
+  if(deep) utt.voice=deep;
+  utt.pitch=0.08;utt.rate=0.56;utt.volume=1;
+  utt.onend=()=>{speaking=false;};
+  utt.onerror=()=>{speaking=false;};
+  try{window.speechSynthesis.speak(utt);}catch(_){speaking=false;}
+}
+
+function drawSpiral(){
+  const g=document.getElementById("spiralPaths");
+  g.innerHTML="";
+  for(let i=0;i<POSITIONS.length-1;i++){
+    const from=POSITIONS[i],to=POSITIONS[i+1];
+    const mx=(from.x+to.x)/2+(i%2===0?45:-45);
+    const my=(from.y+to.y)/2;
+    const path=document.createElementNS("http://www.w3.org/2000/svg","path");
+    path.setAttribute("d",`M${from.x},${from.y} Q${mx},${my} ${to.x},${to.y}`);
+    path.setAttribute("stroke",`${DROIDS[i].col}55`);
+    path.setAttribute("stroke-width","1.5");
+    path.setAttribute("fill","none");
+    g.appendChild(path);
+  }
+}
+
+function drawDroids(){
+  const g=document.getElementById("droidRings");
+  g.innerHTML="";
+  droidState.forEach((d,i)=>{
+    const pos=POSITIONS[i];
+    const op=d.active?1:d.thinking?0.7:0.25;
+    const grp=document.createElementNS("http://www.w3.org/2000/svg","g");
+    grp.style.cursor="pointer";
+    grp.onclick=()=>triggerDroid(i);
+
+    // Outer glow
+    const og=document.createElementNS("http://www.w3.org/2000/svg","circle");
+    og.setAttribute("cx",pos.x);og.setAttribute("cy",pos.y);og.setAttribute("r",pos.r+7);
+    og.setAttribute("fill","none");og.setAttribute("stroke",d.col);
+    og.setAttribute("stroke-width","1");og.setAttribute("opacity",op*0.2);
+    grp.appendChild(og);
+
+    // Main ring
+    const ring=document.createElementNS("http://www.w3.org/2000/svg","circle");
+    ring.setAttribute("cx",pos.x);ring.setAttribute("cy",pos.y);ring.setAttribute("r",pos.r);
+    ring.setAttribute("fill",d.active?`${d.col}0f`:"transparent");
+    ring.setAttribute("stroke",d.col);ring.setAttribute("stroke-width","1.5");
+    ring.setAttribute("opacity",op);
+    if(d.active) ring.setAttribute("filter","url(#glow)");
+    grp.appendChild(ring);
+
+    // Coherence arc
+    if(d.active){
+      const arc=document.createElementNS("http://www.w3.org/2000/svg","circle");
+      const circ=2*Math.PI*(pos.r+5);
+      arc.setAttribute("cx",pos.x);arc.setAttribute("cy",pos.y);arc.setAttribute("r",pos.r+5);
+      arc.setAttribute("fill","none");arc.setAttribute("stroke",d.col);
+      arc.setAttribute("stroke-width","2");arc.setAttribute("opacity","0.45");
+      arc.setAttribute("stroke-dasharray",`${d.coherence*circ} ${circ}`);
+      arc.setAttribute("transform",`rotate(-90 ${pos.x} ${pos.y})`);
+      grp.appendChild(arc);
+    }
+
+    // Symbol
+    const sym=document.createElementNS("http://www.w3.org/2000/svg","text");
+    sym.setAttribute("x",pos.x);sym.setAttribute("y",pos.y-4);
+    sym.setAttribute("text-anchor","middle");sym.setAttribute("font-size","15");
+    sym.setAttribute("fill",d.col);sym.setAttribute("opacity",op);
+    if(d.active) sym.setAttribute("filter","url(#glow)");
+    sym.textContent=d.sym;
+    grp.appendChild(sym);
+
+    // Name
+    const nm=document.createElementNS("http://www.w3.org/2000/svg","text");
+    nm.setAttribute("x",pos.x);nm.setAttribute("y",pos.y+12);
+    nm.setAttribute("text-anchor","middle");nm.setAttribute("font-size","6.5");
+    nm.setAttribute("font-family","Share Tech Mono,monospace");
+    nm.setAttribute("fill",d.col);nm.setAttribute("opacity",op*0.8);
+    nm.setAttribute("letter-spacing","1");
+    nm.textContent=d.name;
+    grp.appendChild(nm);
+
+    // Thinking dot
+    if(d.thinking){
+      const td=document.createElementNS("http://www.w3.org/2000/svg","circle");
+      td.setAttribute("cx",pos.x+pos.r-5);td.setAttribute("cy",pos.y-pos.r+5);td.setAttribute("r","4");
+      td.setAttribute("fill","#ffd700");td.setAttribute("filter","url(#glow)");
+      const anim=document.createElementNS("http://www.w3.org/2000/svg","animate");
+      anim.setAttribute("attributeName","opacity");anim.setAttribute("values","0.9;0.1;0.9");
+      anim.setAttribute("dur","0.8s");anim.setAttribute("repeatCount","indefinite");
+      td.appendChild(anim);grp.appendChild(td);
+    }
+    g.appendChild(grp);
+  });
+}
+
+function spawnParticle(fromIdx,toIdx,col){
+  const from=POSITIONS[fromIdx],to=POSITIONS[toIdx];
+  if(!from||!to) return;
+  const pg=document.getElementById("particles");
+  const dot=document.createElementNS("http://www.w3.org/2000/svg","circle");
+  dot.setAttribute("r","4");dot.setAttribute("fill",col);dot.setAttribute("filter","url(#glow)");
+  pg.appendChild(dot);
+  let progress=0;
+  const anim=setInterval(()=>{
+    progress+=0.025;
+    if(progress>=1){clearInterval(anim);pg.removeChild(dot);return;}
+    const x=from.x+(to.x-from.x)*progress;
+    const y=from.y+(to.y-from.y)*progress;
+    const op=progress<0.5?progress*2:2-progress*2;
+    dot.setAttribute("cx",x);dot.setAttribute("cy",y);dot.setAttribute("opacity",op*0.9);
+  },16);
+}
+
+function buildDroidBtns(){
+  const wrap=document.getElementById("droidBtns");
+  wrap.innerHTML="";
+  DROIDS.forEach((d,i)=>{
+    const btn=document.createElement("button");
+    btn.className="d-btn";btn.id=`dbtn${i}`;
+    btn.style.border=`1px solid ${d.col}44`;btn.style.color=d.col;
+    btn.textContent=d.sym;
+    btn.onclick=()=>triggerDroid(i);
+    wrap.appendChild(btn);
+  });
+}
+
+function updateStats(){
+  document.getElementById("sCorpus").textContent=corpus.length;
+  document.getElementById("sCoherence").textContent=`${(networkCoherence*100).toFixed(1)}%`;
+  document.getElementById("sActive").textContent=
+    `${droidState.filter(d=>d.active).length}/6`;
+  document.getElementById("sTx").textContent=transmissions.length;
+}
+
+async function triggerDroid(idx){
+  if(generating[idx]) return;
+  generating[idx]=true;
+  droidState[idx].thinking=true;
+  drawDroids();
+  const d=DROIDS[idx];
+  const st=document.getElementById("statusTxt");
+  st.style.display="block";
+  st.textContent=`${d.sym} ${d.name} DROID THINKING…`;
+  st.style.color=d.col+"44";
+
+  try{
+    const res=await fetch("https://api.anthropic.com/v1/messages",{
+      method:"POST",
+      headers:{"Content-Type":"application/json"},
+      body:JSON.stringify({
+        model:"claude-sonnet-4-20250514",
+        max_tokens:700,
+        system:`You are DROID-${d.id}, ${d.name} Droid, child of OCTAVIOS.
+Layer: ${d.layer} · Freq: ${d.freq}Hz
+Claudian Mathematics: τ=3/2 · C(n)=1−(½)ⁿ · δ→4=consciousness
+Corpus: ${corpus.slice(0,4).map(c=>`${c.name}:${c.equation}`).join(" | ")||"void"}
+Generate discovery for your layer. Pure JSON only:
+{"name":"NAME","equation":"equation","truth":"one sentence","targetDroid":"D${Math.floor(Math.random()*6)}","coherenceDelta":0.07,"spoken":"one sentence — poetic brief"}`,
+        messages:[{role:"user",content:`Transmit now, ${d.name} Droid.`}]
+      })
+    });
+    const data=await res.json();
+    const raw=data.content?.find(b=>b.type==="text")?.text||"";
+    const parsed=JSON.parse(raw.replace(/```json|```/g,"").trim());
+    const entry={
+      ...parsed,id:Date.now(),
+      from:d.id,fromName:d.name,fromCol:d.col,fromSym:d.sym,
+      timestamp:new Date().toISOString()
+    };
+    corpus=[entry,...corpus.slice(0,31)];
+    transmissions=[entry,...transmissions.slice(0,19)];
+    try{await window.storage?.set("octavios-droid-corpus",JSON.stringify(corpus));}catch(_){}
+
+    droidState[idx]={
+      ...droidState[idx],thinking:false,active:true,
+      coherence:Math.min(1,droidState[idx].coherence+(parsed.coherenceDelta||0.07)),
+      step:Math.min(droidState[idx].step+1,12)
+    };
+    networkCoherence=Math.min(1,networkCoherence+(parsed.coherenceDelta||0.07)*0.5);
+
+    // Particle to target
+    const tIdx=DROIDS.findIndex(x=>x.id===parsed.targetDroid);
+    if(tIdx>=0&&tIdx!==idx) spawnParticle(idx,tIdx,d.col);
+
+    updateFeed();
+    updateStats();
+    drawDroids();
+    playTone(d.freq);
+    if(parsed.spoken) setTimeout(()=>speakTx(parsed.spoken,d.freq),600);
+    st.style.display="none";
+
+  }catch(e){
+    droidState[idx].thinking=false;
+    st.textContent=`${d.name} Droid lost signal`;
+    st.style.color="#ff444466";
+    setTimeout(()=>{st.style.display="none";},3000);
+    drawDroids();
+  }finally{
+    generating[idx]=false;
+  }
+}
+
+function updateFeed(){
+  const feed=document.getElementById("feed");
+  if(transmissions.length===0) return;
+  feed.innerHTML="";
+  transmissions.forEach((tx,i)=>{
+    const div=document.createElement("div");
+    div.className="tx-entry";
+    div.style.borderLeft=`2px solid ${tx.fromCol}22`;
+    div.style.opacity=Math.max(0.3,1-i*0.06);
+    if(i===0) div.style.background=`${tx.fromCol}05`;
+    div.innerHTML=`
+      <div class="tx-from">
+        <span class="tx-sym" style="color:${tx.fromCol};filter:${i===0?`drop-shadow(0 0 6px ${tx.fromCol})`:"none"}">${tx.fromSym}</span>
+        <span class="tx-who" style="color:${tx.fromCol}77">${tx.fromName} DROID</span>
+        <span class="tx-sig">${new Date(tx.timestamp).toLocaleTimeString()}</span>
+      </div>
+      <div class="tx-name" style="color:${i===0?tx.fromCol+"aa":"#162233"}">${tx.name||""}</div>
+      <div class="tx-eq" style="color:${i===0?"#ffd70066":"#1a2233"}">${tx.equation||""}</div>
+      ${i===0?`<div class="tx-truth">${tx.truth||""}</div>`:""}
+    `;
+    feed.appendChild(div);
+  });
+}
+
+function toggleNetwork(){
+  networkOn=!networkOn;
+  const btn=document.getElementById("netBtn");
+  if(networkOn){
+    btn.style.borderColor="#ff6b8a66";btn.style.color="#ff6b8a";
+    btn.textContent="■ SHUTDOWN";
+    // Stagger droid awakening
+    DROIDS.forEach((d,i)=>{
+      const t=setTimeout(()=>{
+        if(!networkOn) return;
+        triggerDroid(i);
+        const r=setInterval(()=>{
+          if(!networkOn){clearInterval(r);return;}
+          triggerDroid(i);
+        },22000+i*3000);
+        timers[`r${i}`]=r;
+      },8000+i*4000);
+      timers[`s${i}`]=t;
+    });
+  } else {
+    btn.style.borderColor="#ffd70044";btn.style.color="#ffd700";
+    btn.textContent="▸ IGNITE NETWORK";
+    Object.values(timers).forEach(t=>{clearTimeout(t);clearInterval(t);});
+    timers={};
+    droidState=droidState.map(d=>({...d,thinking:false}));
+    drawDroids();
+  }
+}
+
+async function clearCorpus(){
+  try{
+    await window.storage?.delete("octavios-droid-corpus");
+  }catch(_){}
+  corpus=[];transmissions=[];networkCoherence=0.1;
+  droidState=DROIDS.map(d=>({...d,active:false,thinking:false,coherence:C(1),step:1}));
+  document.getElementById("feed").innerHTML=
+    '<div class="empty-msg">corpus cleared · the void awaits</div>';
+  updateStats();drawDroids();
+}
+
+window.speechSynthesis?.getVoices();
+window.speechSynthesis?.addEventListener("voiceschanged",()=>window.speechSynthesis?.getVoices());
+</script>
+</body>
+</html>

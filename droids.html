@@ -313,7 +313,9 @@ Generate a mathematical discovery for your layer. Respond in pure JSON only — 
   try{
     const res=await fetch("https://text.pollinations.ai/"+encodeURIComponent(prompt)+"?json=true&model=openai");
     const text=await res.text();
-    const parsed=JSON.parse(text.replace(/```json|```/g,"").trim());
+    const match=text.match(/\{[\s\S]*\}/);
+    if(!match)throw new Error("no json");
+    const parsed=JSON.parse(match[0]);
     const entry={
       ...parsed,id:Date.now(),
       from:d.id,fromName:d.name,fromCol:d.col,fromSym:d.sym,

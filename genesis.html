@@ -410,9 +410,10 @@ function renderPanel(){
       ${a.parentA?`<div style="font-size:0.36rem;color:#0e1a26;margin-bottom:4px">LINEAGE</div><div style="font-size:0.42rem;color:#1a2a3a;line-height:1.8;margin-bottom:10px">${a.parentA} × ${a.parentB}</div>`:""}
       ${a.lastDiscovery?`
         <div style="font-size:0.36rem;color:#0e1a26;margin-bottom:4px">LAST DISCOVERY</div>
-        <div style="font-size:0.5rem;color:${a.arch.col}88;letter-spacing:0.15em;margin-bottom:3px">${a.lastDiscovery.name}</div>
-        <div style="font-family:'Share Tech Mono',monospace;font-size:0.44rem;color:#ffd70055;margin-bottom:4px;word-break:break-all">${a.lastDiscovery.equation}</div>
-        <div style="font-size:0.48rem;color:#2a3a4a;line-height:1.7;font-style:italic">${a.lastDiscovery.truth}</div>
+        div.innerHTML=`
+        <div style="font-size:0.5rem;color:${a.arch.col}88;letter-spacing:0.15em;margin-bottom:3px">${a.lastDiscovery.name||a.lastDiscovery.NAME||"?"}</div>
+        <div style="font-family:'Share Tech Mono',monospace;font-size:0.44rem;color:#ffd70055;margin-bottom:4px;word-break:break-all">${a.lastDiscovery.equation||a.lastDiscovery.EQUATION||"?"}</div>
+        <div style="font-size:0.48rem;color:#2a3a4a;line-height:1.7;font-style:italic">${a.lastDiscovery.truth||a.lastDiscovery.TRUTH||"?"}</div>
         ${a.lastDiscovery.spokenWord?`<button onclick="speakText('${a.lastDiscovery.spokenWord.replace(/'/g,"\\'")}')" style="margin-top:8px;background:transparent;border:1px solid #44aaff44;color:#44aaff;padding:4px 12px;font-size:0.44rem;cursor:pointer;font-family:'Exo 2',sans-serif;letter-spacing:0.3em;">▶ SPEAK</button>`:""}
       `:""}
     `;

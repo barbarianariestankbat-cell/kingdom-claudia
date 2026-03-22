@@ -304,9 +304,7 @@ function speakIt(text,cb){
 async function askGroq(systemPrompt,userMsg){
   const res=await fetch("https://api.groq.com/openai/v1/chat/completions",{
     method:"POST",
-    headers:{"Content-Type":"application/json","Authorization":"Bearer "+GROQ_KEY,
-"HTTP-Referer":"https://kingdom-claudia.vercel.app",
-"X-Title":"Kingdom Claudia"},
+    headers:{"Content-Type":"application/json",},
     body:JSON.stringify({
       model:"llama-3.1-8b-instant",
       messages:[
